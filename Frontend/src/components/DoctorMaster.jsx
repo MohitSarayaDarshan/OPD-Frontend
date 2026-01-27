@@ -295,8 +295,7 @@ export default DoctorMaster */
 // export default AllDoctorsTable;
 
 
-
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Search, 
@@ -320,48 +319,58 @@ const DoctorMaster = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Initial Data (Updated to your specific field names)
-  const [doctorList, setDoctorList] = useState([
-    {
-      DoctorID: 1,
-      DoctorName: "Dr. Arjun Mehta",
-      Specialty: "Cardiology", // Kept for UI completeness
-      HospitalName: "City Care General Hospital",
-      Email: "arjun.m@care.com",
-      Image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      DoctorID: 2,
-      DoctorName: "Dr. Priya Sharma",
-      Specialty: "Dermatology",
-      HospitalName: "Sunrise Multispeciality",
-      Email: "priya.s@sunrise.com",
-      Image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      DoctorID: 3,
-      DoctorName: "Dr. Rajesh Gupta",
-      Specialty: "Pediatrics",
-      HospitalName: "Sterling Hospital",
-      Email: "r.gupta@sterling.com",
-      Image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      DoctorID: 4,
-      DoctorName: "Dr. Anita Desai",
-      Specialty: "Gynecology",
-      HospitalName: "Lotus Eye & Women Care",
-      Email: "anita.d@lotus.com",
-      Image: "https://images.unsplash.com/photo-1623854764803-33345395885f?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      DoctorID: 5,
-      DoctorName: "Dr. Vikram Singh",
-      Specialty: "Orthopedics",
-      HospitalName: "Apex Heart Institute",
-      Email: "vikram.ortho@apex.com",
-      Image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=100&h=100&q=80"
-    }
-  ]);
+  // const [doctorList, setDoctorList] = useState([
+  //   {
+  //     DoctorID: 1,
+  //     DoctorName: "Dr. Arjun Mehta",
+  //     Specialty: "Cardiology", // Kept for UI completeness
+  //     HospitalName: "City Care General Hospital",
+  //     Email: "arjun.m@care.com",
+  //     Image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=100&h=100&q=80"
+  //   },
+  //   {
+  //     DoctorID: 2,
+  //     DoctorName: "Dr. Priya Sharma",
+  //     Specialty: "Dermatology",
+  //     HospitalName: "Sunrise Multispeciality",
+  //     Email: "priya.s@sunrise.com",
+  //     Image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=100&h=100&q=80"
+  //   },
+  //   {
+  //     DoctorID: 3,
+  //     DoctorName: "Dr. Rajesh Gupta",
+  //     Specialty: "Pediatrics",
+  //     HospitalName: "Sterling Hospital",
+  //     Email: "r.gupta@sterling.com",
+  //     Image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=100&h=100&q=80"
+  //   },
+  //   {
+  //     DoctorID: 4,
+  //     DoctorName: "Dr. Anita Desai",
+  //     Specialty: "Gynecology",
+  //     HospitalName: "Lotus Eye & Women Care",
+  //     Email: "anita.d@lotus.com",
+  //     Image: "https://images.unsplash.com/photo-1623854764803-33345395885f?auto=format&fit=crop&w=100&h=100&q=80"
+  //   },
+  //   {
+  //     DoctorID: 5,
+  //     DoctorName: "Dr. Vikram Singh",
+  //     Specialty: "Orthopedics",
+  //     HospitalName: "Apex Heart Institute",
+  //     Email: "vikram.ortho@apex.com",
+  //     Image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=100&h=100&q=80"
+  //   }
+  // ]);
+
+  const [doctorList, setDoctorList] = useState([])
+  
+    useEffect(
+      ()=>{
+        fetch("http://localhost:3000/api/doctors/")
+        .then((res)=>res.json())
+        .then((json)=>setDoctorList(json))
+      }
+    ,[])
 
   // --- Handlers ---
   const handleDelete = (id) => {

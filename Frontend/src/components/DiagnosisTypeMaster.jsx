@@ -61,7 +61,6 @@
 
 // export default DiagnosisTypes;
 
-
 import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { SidebarContext } from '../contexts/Sidebar';
@@ -76,6 +75,7 @@ import {
   Building2,
   FileText
 } from 'lucide-react';
+import { useEffect } from 'react';
 
 const DiagnosisTypeMaster = () => {
   // --- Context for Sidebar Transition ---
@@ -85,43 +85,53 @@ const DiagnosisTypeMaster = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Initial Data (Mapped to your DB Schema)
-  const [diagnosisList, setDiagnosisList] = useState([
-    {
-      DiagnosisTypeID: 1,
-      DiagnosisTypeName: "Acute Gastritis",
-      DiagnosisTypeShortName: "GAS-ACU",
-      IsActive: true,
-      HospitalName: "City Care General Hospital"
-    },
-    {
-      DiagnosisTypeID: 2,
-      DiagnosisTypeName: "Type 2 Diabetes Mellitus",
-      DiagnosisTypeShortName: "DIA-T2",
-      IsActive: true,
-      HospitalName: "Sunrise Multispeciality"
-    },
-    {
-      DiagnosisTypeID: 3,
-      DiagnosisTypeName: "Essential Hypertension",
-      DiagnosisTypeShortName: "HYP-ESS",
-      IsActive: true,
-      HospitalName: "Sterling Hospital"
-    },
-    {
-      DiagnosisTypeID: 4,
-      DiagnosisTypeName: "Viral Pyrexia (Fever)",
-      DiagnosisTypeShortName: "PYR-VIR",
-      IsActive: false,
-      HospitalName: "City Care General Hospital"
-    },
-    {
-      DiagnosisTypeID: 5,
-      DiagnosisTypeName: "Migraine without Aura",
-      DiagnosisTypeShortName: "MIG-WOA",
-      IsActive: true,
-      HospitalName: "Apex Heart Institute"
-    }
-  ]);
+  // const [diagnosisList, setDiagnosisList] = useState([
+  //   {
+  //     DiagnosisTypeID: 1,
+  //     DiagnosisTypeName: "Acute Gastritis",
+  //     DiagnosisTypeShortName: "GAS-ACU",
+  //     IsActive: true,
+  //     HospitalName: "City Care General Hospital"
+  //   },
+  //   {
+  //     DiagnosisTypeID: 2,
+  //     DiagnosisTypeName: "Type 2 Diabetes Mellitus",
+  //     DiagnosisTypeShortName: "DIA-T2",
+  //     IsActive: true,
+  //     HospitalName: "Sunrise Multispeciality"
+  //   },
+  //   {
+  //     DiagnosisTypeID: 3,
+  //     DiagnosisTypeName: "Essential Hypertension",
+  //     DiagnosisTypeShortName: "HYP-ESS",
+  //     IsActive: true,
+  //     HospitalName: "Sterling Hospital"
+  //   },
+  //   {
+  //     DiagnosisTypeID: 4,
+  //     DiagnosisTypeName: "Viral Pyrexia (Fever)",
+  //     DiagnosisTypeShortName: "PYR-VIR",
+  //     IsActive: false,
+  //     HospitalName: "City Care General Hospital"
+  //   },
+  //   {
+  //     DiagnosisTypeID: 5,
+  //     DiagnosisTypeName: "Migraine without Aura",
+  //     DiagnosisTypeShortName: "MIG-WOA",
+  //     IsActive: true,
+  //     HospitalName: "Apex Heart Institute"
+  //   }
+  // ]);
+
+  const [diagnosisList, setDiagnosisList] = useState([])
+    
+      useEffect(
+        ()=>{
+          fetch("http://localhost:3000/api/diagnosistypes/")
+          .then((res)=>res.json())
+          .then((json)=>setDiagnosisList(json))
+        }
+      ,[])
 
   // --- Handlers ---
   const handleDelete = (id) => {
