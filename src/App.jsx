@@ -77,7 +77,7 @@ function App() {
                           <Route path="/admin/getAllDoctors" element={<DoctorMaster />} />
                           <Route path="/admin/getDoctor/:id" element={<DoctorDetails />} />
                           <Route path="/admin/addDoctor" element={<DoctorAdd />} />
-                          <Route path="/admin/editDoctor/:id" element={<DoctorDetails />} />
+                          <Route path="/admin/editDoctor/:id" element={<DoctorAdd />} />
                           <Route path="/admin/deleteDoctor/:id" element={<DoctorDetails />} />
 
                           <Route path="/admin/getAllStaffs" element={<StaffMaster />} />
