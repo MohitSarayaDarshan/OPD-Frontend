@@ -198,7 +198,7 @@ const OPDMaster = () => {
                     <td className="px-6 py-4">
                         <div className="flex items-center gap-1 font-bold text-slate-800">
                             <IndianRupee className="w-3.5 h-3.5 text-slate-500" />
-                            {item.RegistrationCharge}
+                            {item.RegistrationFee}
                         </div>
                     </td>
 

@@ -198,7 +198,7 @@ useEffect(() => {
 
               <div className="flex justify-between items-center py-2 border-b border-gray-50">
                 <span className="text-xs text-slate-500">Registration Fee</span>
-                <span className="text-sm font-bold text-indigo-600">₹{opdData.RegistrationCharge}</span>
+                <span className="text-sm font-bold text-indigo-600">₹{opdData.RegistrationFee}</span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-gray-50">

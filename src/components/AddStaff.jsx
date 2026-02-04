@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Save, 
@@ -13,62 +13,107 @@ import {
   MapPin,
   ShieldCheck
 } from 'lucide-react';
+import { useEffect } from 'react';
 
 const AddStaff = () => {
   const { expanded } = useContext(SidebarContext);
   const navigate = useNavigate();
+  const {id}=useParams()
 
   // --- Form State ---
   const [formData, setFormData] = useState({
-    StaffID: 0,
     StaffName: '',
-    HospitalID: '',
-    HospitalName: '', // Usually derived from HospitalID, but kept as per your request
+    HospitalID: '', // Usually derived from HospitalID, but kept as per your request
     Description: '',
-    IsActive: true,
-    UserID: 1, 
-    Created: new Date().toISOString(),
-    Modified: new Date().toISOString()
+    UserID: '',
+    Image:'',
+    Role:''
   });
 
+  
+  if(id){
+      useEffect(()=>{
+        fetch('http://localhost:3000/api/staffs/'+id)
+        .then((res)=>res.json())
+        .then((json)=>setFormData(json[0]))
+      },[])
+    }
   // --- Handlers ---
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
     // Logic to handle HospitalName automatically if HospitalID is selected
-    if (name === "HospitalID") {
-      const hospitalMap = {
-        "1": "City General Hospital",
-        "2": "Suburban Clinic"
-      };
-      setFormData({
-        ...formData,
-        HospitalID: value,
-        HospitalName: hospitalMap[value] || ""
-      });
-    } else {
+    
       setFormData({ 
         ...formData, 
         [name]: type === 'checkbox' ? checked : value 
       });
-    }
+    
   };
 
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      console.log("Submitting Staff Data:", formData);
-      // API call logic here
-      navigate('/admin/getAllStaff');
-    } catch (error) {
-      console.error('Error saving staff member:', error);
-      alert('Failed to save staff record.');
+    if (id) {
+      try {
+        const { Created, Modified, StaffID, _id, ...updateData } = formData;
+        console.log("Submitting to MongoDB Schema:", updateData);
+        // Example API call:
+
+        const response = await fetch(
+          "http://localhost:3000/api/staffs/update/" + id,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`OPD edited with id ${result.StaffID}`);
+          navigate("/admin/getStaff/" + id);
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error editing staff:", error);
+        alert("Failed to save Staff. Please check schema constraints.");
+      }
+    } else {
+      try {
+        console.log("Submitting to MongoDB Schema:", formData);
+        // Example API call:
+        const response = await fetch(
+          "http://localhost:3000/api/staffs/register",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`Staff added with id ${result.StaffID}`);
+          navigate("/admin/getAllStaffs");
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error saving Staff:", error);
+        alert("Failed to save Staff. Please check schema constraints.");
+      }
     }
   };
 
-  const handleCancel = () => {
-    navigate('/admin/getAllStaffs');
-  };
+  const handleCancel = () =>{ if(id){navigate('/admin/getStaff/'+id)}else{navigate('/admin/getAllStaffs')}};
+
 
   return (
     <div className={`min-h-screen bg-gray-50 text-slate-800 font-sans p-8 ${expanded ? "ml-64" : "ml-16"} transition-all duration-1000 animate-fade-in`}>
@@ -110,57 +155,97 @@ const AddStaff = () => {
 
             {/* Job Title / Role (Mapped to Description or specific field) */}
             <div className="col-span-full md:col-span-1">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Hospital Branch <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hospital ID <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select 
+                <input
                   name="HospitalID"
+                  placeholder='Hospital ID'
                   required
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all appearance-none"
                   value={formData.HospitalID}
                   onChange={handleChange}
-                >
-                  <option value="">Select Hospital</option>
-                  <option value="1">City General Hospital</option>
-                  <option value="2">Suburban Clinic</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Hospital Name (Read Only / Auto-filled) */}
-            <div className="col-span-full md:col-span-1">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                  type="text" 
-                  name="HospitalName"
-                  readOnly
-                  placeholder="Select a hospital above"
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-slate-500 outline-none"
-                  value={formData.HospitalName}
                 />
+
               </div>
             </div>
 
-            {/* Is Active Toggle */}
-            <div className="col-span-full md:col-span-1 flex items-end pb-1">
-              <label className="flex items-center gap-3 cursor-pointer group p-2 px-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all w-full">
-                <div className={`text-blue-600 transition-transform ${formData.IsActive ? 'scale-110' : 'scale-100'}`}>
-                    {formData.IsActive ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8 text-slate-300" />}
-                </div>
-                <input 
-                  type="checkbox" 
-                  name="IsActive" 
-                  className="hidden" 
-                  checked={formData.IsActive}
+            <div className="col-span-full md:col-span-1">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">User ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  name="UserID"
+                  placeholder='User ID'
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all appearance-none"
+                  value={formData.UserID}
                   onChange={handleChange}
                 />
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-slate-700">Employment Status</span>
-                  <span className="text-xs text-slate-500">{formData.IsActive ? 'Currently Employed' : 'On Leave / Inactive'}</span>
+
+              </div>
+            </div>
+
+             <div className="col-span-full md:col-span-1">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  name="Role"
+                  required
+                  placeholder="e.g. Nurse"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.Role}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+
+            <div className="col-span-full text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2 border-b border-gray-100 pb-2">
+              Profile Media
+            </div>
+            
+            <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+              {/* URL Input */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Staff Image URL
+                </label>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    name="Image"
+                    placeholder="https://example.com/photo.jpg"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                    value={formData.Image}
+                    onChange={handleChange}
+                  />
                 </div>
-              </label>
+                <p className="text-xs text-slate-500 mt-2 italic">Paste a direct link to the staff's portrait.</p>
+              </div>
+            
+              {/* Image Preview Box */}
+              <div className="flex flex-col items-center justify-center">
+                <label className="block text-sm font-semibold text-slate-700 mb-2 w-full text-center md:text-left">
+                  Preview
+                </label>
+                <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-gray-100 flex items-center justify-center overflow-hidden shadow-inner">
+                  {formData.Image ? (
+                    <img 
+                      src={formData.Image} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/150?text=Invalid+URL';
+                      }}
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-gray-400" />
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Description / Staff Bio */}

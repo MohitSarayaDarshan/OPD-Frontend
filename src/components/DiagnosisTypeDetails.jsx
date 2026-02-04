@@ -20,20 +20,6 @@ const DiagnosisTypeDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // --- Mock Data (Replace with API call using id) ---
-  // const diagnosisData = {
-  //   DiagnosisTypeID: id || 1,
-  //   DiagnosisTypeName: "Acute Gastritis",
-  //   DiagnosisTypeShortName: "GAS-ACU",
-  //   HospitalID: 1,
-  //   HospitalName: "City Care General Hospital",
-  //   Description: "Inflammation of the stomach lining, typically causing pain, nausea, and vomiting.",
-  //   IsActive: true,
-  //   UserID: 1,
-  //   Created: "2024-01-15T09:30:00",
-  //   Modified: "2024-01-15T09:30:00"
-  // };
-
   const [diagnosisData,setDiagnosisData] = useState([]);
 
   useEffect(() => {
@@ -74,7 +60,7 @@ const DiagnosisTypeDetails = () => {
       }
 
         
-        alert(`OPD deleted with ${id}`);
+        alert(`Diagonsis Type deleted with ${id}`);
         navigate('/admin/getAllDiagnosisTypes');
       } catch (error) {
         console.error('Error deleting Diagnosis:', error);
@@ -222,7 +208,7 @@ const DiagnosisTypeDetails = () => {
                   Edit Diagnosis Type
                 </button>
                 <button 
-                  onClick={handleDelete}
+                  onClick={()=>{handleDelete(id)}}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-white text-red-600 text-sm font-medium rounded-lg border border-red-200 hover:bg-red-50 transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95"
                 >
                   <Trash2 className="w-4 h-4" />

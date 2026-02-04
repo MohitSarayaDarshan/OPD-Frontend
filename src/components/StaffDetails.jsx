@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   ArrowLeft, 
@@ -12,14 +12,17 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 const StaffDetails = () => {
   const { expanded } = useContext(SidebarContext);
   const navigate = useNavigate();
   const { id } = useParams();
+  console.log(id)
 
   // --- Mock Data (Replace with API call using id) ---
-  const staffData = {
+  const [staffData,setStaffData] = useState({
     StaffID: id || 420,
     StaffName: "Krunal Galani",
     HospitalID: 1,
@@ -28,7 +31,20 @@ const StaffDetails = () => {
     UserID: 10,
     Created: "2025-10-21T10:30:00",
     Modified: "2025-10-21T10:30:00"
+  });
+
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/staffs/${id}`);
+      const data = await response.json();
+      setStaffData(data[0]);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
   };
+  fetchData();
+}, [id]);
 
   // Helper to format dates
   const formatDate = (isoString) => {
@@ -39,15 +55,26 @@ const StaffDetails = () => {
     });
   };
 
-  const handleDelete = async () => {
-    if(window.confirm("Are you sure you want to delete this staff member?")) {
+  const handleDelete = async(id) => {
+ 
+    if(confirm("Are you sure you want to delete this Staff record?")) {
       try {
         // TODO: Replace with actual API call
-        // await fetch(`/api/staffs/${id}`, { method: 'DELETE' });
+        // await fetch(`/api/opds/${id}`, { method: 'DELETE' });
+        const req=await fetch(`http://localhost:3000/api/staffs/delete/${id}`,{
+          method:'DELETE'
+        })
+
+        if (!req.status==201) {
+        throw new Error('Failed to delete the record from the server');
+      }
+
+        
+        alert(`Staff deleted with ${id}`);
         navigate('/admin/getAllStaffs');
       } catch (error) {
-        console.error('Error deleting staff:', error);
-        alert('Failed to delete staff. Please try again.');
+        console.error('Error deleting Staff:', error);
+        alert('Failed to delete Staff record. Please try again.');
       }
     }
   };
@@ -80,9 +107,9 @@ const StaffDetails = () => {
             <div className="px-8 pb-8">
               <div className="relative -mt-12 mb-4">
                 <div className="w-24 h-24 bg-white rounded-full p-1.5 shadow-md">
-                   <div className="w-full h-full bg-green-50 rounded-full flex items-center justify-center text-green-600">
-                      <User className="w-10 h-10" />
-                   </div>
+                   
+                      <img src={staffData.Image} className="w-full h-full bg-green-50 rounded-full flex items-center justify-center text-green-600" />
+                   
                 </div>
               </div>
               
@@ -91,7 +118,9 @@ const StaffDetails = () => {
                   <h2 className="text-2xl font-bold text-slate-900">{staffData.StaffName}</h2>
                   <div className="flex items-center gap-2 text-slate-500 mt-1">
                     <Building2 className="w-4 h-4" />
-                    <span>{staffData.HospitalName}</span>
+                    <span>{staffData.HospitalID}</span>
+                    <User className='w-4 h-4'/>
+                    <span>{staffData.StaffID}</span>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase tracking-wide rounded-full border border-green-100">
@@ -105,6 +134,15 @@ const StaffDetails = () => {
                 </h4>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   {staffData.Description || "No description provided."}
+                </p>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-green-500" /> Role
+                </h4>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {staffData.Role || "Role"}
                 </p>
               </div>
             </div>
@@ -169,6 +207,7 @@ const StaffDetails = () => {
           <div className="bg-green-50 rounded-xl border border-green-100 p-6">
              <h4 className="text-sm font-bold text-green-900 mb-3">Actions</h4>
              <div className="space-y-2">
+                <Link to={'/admin/editStaff/'+id}>
                 <button 
                   onClick={() => navigate(`/admin/editStaff/${staffData.StaffID}`)}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-white text-green-600 text-sm font-medium rounded-lg border border-green-200 hover:bg-green-600 hover:text-white transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95"
@@ -176,8 +215,9 @@ const StaffDetails = () => {
                   <Edit className="w-4 h-4" />
                   Edit Profile
                 </button>
+                </Link>
                 <button 
-                  onClick={handleDelete}
+                  onClick={()=>{handleDelete(id)}}
                   className="w-full flex items-center justify-center gap-2 py-2 bg-white text-red-600 text-sm font-medium rounded-lg border border-red-200 hover:bg-red-50 transition-all duration-300 shadow-sm transform hover:scale-105 active:scale-95"
                 >
                   <Trash2 className="w-4 h-4" />

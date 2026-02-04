@@ -15,6 +15,7 @@ import {
   Hash
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const ReceiptMasterAdmin = () => {
   // --- Context for Sidebar Transition ---
@@ -24,68 +25,22 @@ const ReceiptMasterAdmin = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Initial Data (Mapped to your specific field names)
-  const [receiptList, setReceiptList] = useState([
-    {
-      ReceiptID: 501,
-      ReceiptNo: "REC-2025-001",
-      ReceiptDate: "2025-01-10",
-      HospitalName: "City Care General Hospital",
-      AmountPaid: 1500,
-      PaymentMode: "UPI",
-      ReferenceNo: "UPI-99887766",
-      ReferenceDate: "2025-01-10"
-    },
-    {
-      ReceiptID: 502,
-      ReceiptNo: "REC-2025-002",
-      ReceiptDate: "2025-01-11",
-      HospitalName: "Sunrise Multispeciality",
-      AmountPaid: 5000,
-      PaymentMode: "Credit Card",
-      ReferenceNo: "TXN-CC-12345",
-      ReferenceDate: "2025-01-11"
-    },
-    {
-      ReceiptID: 503,
-      ReceiptNo: "REC-2025-003",
-      ReceiptDate: "2025-01-12",
-      HospitalName: "Sterling Hospital",
-      AmountPaid: 500,
-      PaymentMode: "Cash",
-      ReferenceNo: "N/A",
-      ReferenceDate: "2025-01-12"
-    },
-    {
-      ReceiptID: 504,
-      ReceiptNo: "REC-2025-004",
-      ReceiptDate: "2025-01-12",
-      HospitalName: "Apex Heart Institute",
-      AmountPaid: 12000,
-      PaymentMode: "Net Banking",
-      ReferenceNo: "NB-SBI-009988",
-      ReferenceDate: "2025-01-12"
-    },
-    {
-      ReceiptID: 505,
-      ReceiptNo: "REC-2025-005",
-      ReceiptDate: "2025-01-13",
-      HospitalName: "City Care General Hospital",
-      AmountPaid: 2500,
-      PaymentMode: "Debit Card",
-      ReferenceNo: "TXN-DC-554433",
-      ReferenceDate: "2025-01-13"
-    }
-  ]);
+  const [receiptList, setReceiptList] = useState([]);
+
+  useEffect(
+        ()=>{
+          fetch("http://localhost:3000/api/receipts/")
+          .then((res)=>res.json())
+          .then((json)=>{console.log(json);setReceiptList(json)})
+        }
+      ,[])
 
   // --- Handlers ---
-  const handleDelete = (id) => {
-    setReceiptList(receiptList.filter(item => item.ReceiptID !== id));
-  };
+  
 
   // Filter by Receipt No or Hospital Name
   const filteredReceipts = receiptList.filter(item => 
-    item.ReceiptNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.HospitalName.toLowerCase().includes(searchTerm.toLowerCase())
+    item.ReceiptNo.toLowerCase().includes(searchTerm.toLowerCase()) 
   );
 
   return (
@@ -120,7 +75,7 @@ const ReceiptMasterAdmin = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search Receipt No or Hospital..." 
+              placeholder="Search Receipt No" 
               className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,9 +94,8 @@ const ReceiptMasterAdmin = () => {
               <tr>
                 <th className="px-6 py-4">ID</th>
                 <th className="px-6 py-4">Receipt Details</th>
-                <th className="px-6 py-4">Hospital Name</th>
-                <th className="px-6 py-4">Amount & Mode</th>
-                <th className="px-6 py-4">Reference Details</th>
+                <th className="px-6 py-4">Amount</th>
+                <th className="px-6 py-4">Transaction Mode</th>
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
@@ -172,12 +126,12 @@ const ReceiptMasterAdmin = () => {
                     </td>
 
                     {/* Hospital Name Column */}
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                        <div className="flex items-center gap-2 text-slate-600">
                          <Building2 className="w-4 h-4 text-slate-400" />
                          {receipt.HospitalName}
                        </div>
-                    </td>
+                    </td> */}
 
                     {/* Amount & Payment Mode Column */}
                     <td className="px-6 py-4">
@@ -188,7 +142,7 @@ const ReceiptMasterAdmin = () => {
                             </div>
                             <span className="inline-flex items-center w-max gap-1 px-2 py-0.5 rounded bg-gray-100 text-slate-600 text-[10px] font-medium border border-gray-200 uppercase">
                                 <CreditCard className="w-3 h-3" />
-                                {receipt.PaymentMode}
+                                {receipt.PaymentModeID}
                             </span>
                        </div>
                     </td>
@@ -211,7 +165,7 @@ const ReceiptMasterAdmin = () => {
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         
                         {/* VIEW ACTION */}
-                        <Link to='/admin/editReceipt/:id'>
+                        <Link to={`/admin/getReceipt/${receipt.ReceiptID}`}>
                         <button className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded transition-colors" title="View Details">
                           <Eye className="w-4 h-4" />
                         </button>

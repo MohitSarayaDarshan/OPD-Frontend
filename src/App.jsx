@@ -53,6 +53,7 @@ import AddOPD from "./components/AddOPD";
 import ReceiptDetailsAdmin from "./components/ReceiptDetailsAdmin";
 import Register from "./components/Register";
 import LandingPage from "./components/LandingPage";
+import AddStaff from "./components/AddStaff";
 
 function App() {
     return (
@@ -82,8 +83,8 @@ function App() {
 
                           <Route path="/admin/getAllStaffs" element={<StaffMaster />} />
                           <Route path="/admin/getStaff/:id" element={<StaffDetails />} />
-                          <Route path="/admin/addStaff" element={<StaffMaster />} />
-                          <Route path="/admin/editStaff/:id" element={<StaffDetails />} />
+                          <Route path="/admin/addStaff" element={<AddStaff />} />
+                          <Route path="/admin/editStaff/:id" element={<AddStaff />} />
                           <Route path="/admin/deleteStaff/:id" element={<StaffDetails />} />
 
                           <Route path="/admin/getAllTreatments" element={<TreatmentTypeMaster />} />

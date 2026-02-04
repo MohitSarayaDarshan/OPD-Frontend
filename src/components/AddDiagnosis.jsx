@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Save, 
@@ -12,24 +12,39 @@ import {
   ToggleRight,
   Search
 } from 'lucide-react';
+import { useEffect } from 'react';
 
 const AddDiagnosis = () => {
   const { expanded } = useContext(SidebarContext);
   const navigate = useNavigate();
+  const{id}=useParams();
+
 
   // --- Form State ---
   const [formData, setFormData] = useState({
-    DiagnosisTypeID: 0,
-    DiagnosisTypeName: '',
-    DiagnosisTypeShortName: '',
-    IsActive: true,
-    HospitalID: '',
-    Description: '',
-    UserID: 1, 
-    Created: new Date().toISOString(),
-    Modified: new Date().toISOString()
-  });
 
+  DiagnosisTypeName:'',
+  DiagnosisTypeShortName: '',
+  IsActive: false,
+  HospitalID: '',
+  Description: '',
+  UserID: ''});
+
+  useEffect(() => {
+    if (id) {
+      const fetchData = async () => {
+        try {
+          const response = await fetch(`http://localhost:3000/api/diagnosistypes/${id}`);
+          const data = await response.json();
+          setFormData(data[0]); // Fill the form with existing data
+        } catch (err) {
+          console.error("Failed to fetch Diagonsis Type", err);
+        }
+      };
+      fetchData();
+    }
+  }, [id]);
+  
   // --- Handlers ---
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,21 +54,70 @@ const AddDiagnosis = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      console.log("Submitting Diagnosis Data:", formData);
-      // API call logic here
-      navigate('/admin/getAllDiagnoses');
-    } catch (error) {
-      console.error('Error saving diagnosis:', error);
-      alert('Failed to save diagnosis type.');
+   
+    if (id) {
+      try {
+        const { Created, Modified, SubTreatmentTypeID, _id, ...updateData } = formData;
+        console.log("Submitting to MongoDB Schema:", updateData);
+        // Example API call:
+
+        const response = await fetch(
+          "http://localhost:3000/api/diagnosistypes/update/" + id,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`Diagnosis Type edited with id ${result.DiagnosisTypeID}`);
+          navigate("/admin/addDiagnosisType/" + id);
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error editing Diagnosis Type:", error);
+        alert("Failed to save Diagnosis Type. Please check schema constraints.");
+      }
+    } else {
+      try {
+        const { Created, Modified, DiagnosisTypeID, _id, ...addData } = formData;
+        // Example API call:
+        console.log(addData);
+        const response = await fetch(
+          "http://localhost:3000/api/diagnosistypes/register",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(addData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`Hospital added with id ${result.DiagnosisTypeID}`);
+          navigate("/admin/getAllDiagnosisTypes");
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error saving Diagnosis Type:", error);
+        alert("Failed to save Diagnosis Type. Please check schema constraints.");
+      }
     }
   };
+  const handleCancel = () =>{ if(id){navigate('/admin/addDiagnosisType/'+id)}else{navigate('/admin/getAllDiagnosisTypes')}};
 
-  const handleCancel = () => {
-    navigate('/admin/getAllDiagnoses');
-  };
 
   return (
     <div className={`min-h-screen bg-gray-50 text-slate-800 font-sans p-8 ${expanded ? "ml-64" : "ml-16"} transition-all duration-1000 animate-fade-in`}>
@@ -74,10 +138,10 @@ const AddDiagnosis = () => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+          <div className="grid grid-cols-3 md:grid-cols-2 gap-x-6 gap-y-6">
 
             {/* Diagnosis Type Name */}
-            <div className="col-span-full md:col-span-1">
+            <div className="">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Diagnosis Name <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -93,15 +157,31 @@ const AddDiagnosis = () => {
               </div>
             </div>
 
+            <div className="">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">User ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  name="UserID"
+                  required
+                  placeholder="e.g. 101"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.UserID}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
             {/* Short Name */}
             <div className="col-span-full md:col-span-1">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Short Code (ICD-10 etc.)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Diagnosis Type Short Name</label>
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
                   name="DiagnosisTypeShortName"
-                  placeholder="e.g. I10"
+                  placeholder="e.g. GAS-ACU"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
                   value={formData.DiagnosisTypeShortName}
                   onChange={handleChange}
@@ -111,20 +191,17 @@ const AddDiagnosis = () => {
 
             {/* Hospital Selection */}
             <div className="col-span-full md:col-span-1">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Hospital Branch <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hospital ID <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select 
+                <input 
                   name="HospitalID"
                   required
+                  placeholder="e.g. 1"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all appearance-none"
                   value={formData.HospitalID}
                   onChange={handleChange}
-                >
-                  <option value="">Select Hospital</option>
-                  <option value="1">City General Hospital</option>
-                  <option value="2">Suburban Clinic</option>
-                </select>
+                />
               </div>
             </div>
 

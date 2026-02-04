@@ -492,6 +492,7 @@ import {
   Eye
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const StaffMaster = () => {
   // --- Context for Sidebar Transition ---
@@ -501,58 +502,15 @@ const StaffMaster = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Initial Data (Removed Shift, Added HospitalName)
-  const [staffList, setStaffList] = useState([
-    {
-      id: 1,
-      name: "Alice Johnson",
-      email: "alice.j@hospital.com",
-      role: "Senior Nurse",
-      department: "ICU",
-      hospitalName: "City Care General Hospital",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      id: 2,
-      name: "Robert Smith",
-      email: "bob.smith@hospital.com",
-      role: "Ward Boy",
-      department: "General Ward",
-      hospitalName: "Sunrise Multispeciality",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      id: 3,
-      name: "Sarah Williams",
-      email: "sarah.w@hospital.com",
-      role: "Receptionist",
-      department: "Front Desk",
-      hospitalName: "Sterling Hospital",
-      status: "On Leave",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      id: 4,
-      name: "David Brown",
-      email: "david.b@hospital.com",
-      role: "Lab Technician",
-      department: "Pathology",
-      hospitalName: "City Care General Hospital",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100&q=80"
-    },
-    {
-      id: 5,
-      name: "Emily Davis",
-      email: "emily.d@hospital.com",
-      role: "Pharmacist",
-      department: "Pharmacy",
-      hospitalName: "Apex Heart Institute",
-      status: "Active",
-      image: "https://images.unsplash.com/photo-1554151228-14d9def656ec?auto=format&fit=crop&w=100&h=100&q=80"
-    }
-  ]);
+  const [staffList, setStaffList] = useState([]);
+
+   useEffect(
+        ()=>{
+          fetch("http://localhost:3000/api/staffs/")
+          .then((res)=>res.json())
+          .then((json)=>setStaffList(json))
+        }
+      ,[])
 
   // --- Handlers ---
   const handleDelete = (id) => {
@@ -561,8 +519,8 @@ const StaffMaster = () => {
 
   // Filter by Name or Role
   const filteredStaff = staffList.filter(staff => 
-    staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    staff.role.toLowerCase().includes(searchTerm.toLowerCase())
+    staff.StaffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    staff.Role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -577,6 +535,7 @@ const StaffMaster = () => {
         </div>
         
         {/* ADD NEW STAFF BUTTON */}
+        <Link to={'/admin/addStaff'}>
         <button 
           onClick={() => console.log("Navigate to Add Staff Page")} 
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all font-medium"
@@ -584,6 +543,7 @@ const StaffMaster = () => {
           <Plus className="w-4 h-4" />
           Add New Staff
         </button>
+        </Link>
       </div>
 
       {/* --- Table Container --- */}
@@ -614,8 +574,7 @@ const StaffMaster = () => {
               <tr>
                 <th className="px-6 py-4">Staff Name</th>
                 <th className="px-6 py-4">Role</th>
-                <th className="px-6 py-4">Department</th>
-                <th className="px-6 py-4">Hospital Name</th> {/* Added Hospital Name */}
+                <th className='px-6 py-4'>Hospital ID</th>
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
@@ -627,13 +586,13 @@ const StaffMaster = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={staff.image} 
-                          alt={staff.name} 
+                          src={staff.Image} 
+                          alt={staff.StaffName} 
                           className="w-10 h-10 rounded-full object-cover border border-blue-100"
                         />
                         <div>
-                          <div className="font-medium text-slate-900">{staff.name}</div>
-                          <div className="text-xs text-slate-400">{staff.email}</div>
+                          <div className="font-medium text-slate-900">{staff.StaffName}</div>
+                          
                         </div>
                       </div>
                     </td>
@@ -642,20 +601,17 @@ const StaffMaster = () => {
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
                         <BadgeCheck className="w-3 h-3" />
-                        {staff.role}
+                        {staff.Role}
                       </span>
                     </td>
 
-                    {/* Department Column */}
-                    <td className="px-6 py-4 text-slate-500">
-                      {staff.department}
-                    </td>
+                  
 
                     {/* Hospital Name Column (Replaced Shift) */}
                     <td className="px-6 py-4">
                        <div className="flex items-center gap-2 text-slate-600">
                          <Building2 className="w-4 h-4 text-slate-400" />
-                         {staff.hospitalName}
+                         {staff.HospitalID}
                        </div>
                     </td>
 
@@ -664,7 +620,7 @@ const StaffMaster = () => {
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         
                         {/* VIEW ACTION */}
-                        <Link to={`/admin/getStaff/${staff.id}`}>
+                        <Link to={`/admin/getStaff/${staff.StaffID}`}>
                           <button className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded transition-all duration-300 hover:scale-110 active:scale-95" title="View Details">
                             <Eye className="w-4 h-4" />
                           </button>

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Save, 
@@ -13,24 +13,40 @@ import {
   Wallet,
   Activity
 } from 'lucide-react';
+import { useEffect } from 'react';
 
 const AddSubTreatmentType = () => {
   const { expanded } = useContext(SidebarContext);
   const navigate = useNavigate();
+  const{id}=useParams();
+ 
 
   // --- Form State ---
   const [formData, setFormData] = useState({
-    SubTreatmentTypeID: 0,
+    SubTreatmentTypeID: '',
     SubTreatmentTypeName: '',
-    TreatmentTypeID: '', // Parent Category
+    TreatmentTypeID: '',
     Rate: '',
-    IsActive: true,
+    IsActive: false,
     Description: '',
-    AccountID: '', // Ledger Mapping
-    UserID: 1, 
-    Created: new Date().toISOString(),
-    Modified: new Date().toISOString()
-  });
+    UserID: '',
+    AccountID: ''
+    });
+
+  useEffect(() => {
+  if (id) {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/subtreatments/${id}`);
+        const data = await response.json();
+        setFormData(data[0]); // Fill the form with existing data
+      } catch (err) {
+        console.error("Failed to fetch sub-treatment", err);
+      }
+    };
+    fetchData();
+  }
+}, [id]);
 
   // --- Handlers ---
   const handleChange = (e) => {
@@ -39,23 +55,72 @@ const AddSubTreatmentType = () => {
       ...formData, 
       [name]: type === 'checkbox' ? checked : value 
     });
+  
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      console.log("Submitting Sub-Treatment Data:", formData);
-      // API call logic here
-      navigate('/admin/getAllSubTreatments');
-    } catch (error) {
-      console.error('Error saving sub-treatment:', error);
-      alert('Failed to save sub-treatment type.');
+   
+    if (id) {
+      try {
+        const { Created, Modified, SubTreatmentTypeID, _id, ...updateData } = formData;
+        console.log("Submitting to MongoDB Schema:", updateData);
+        // Example API call:
+
+        const response = await fetch(
+          "http://localhost:3000/api/subtreatments/update/" + id,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updateData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`Sub-Treatment Type edited with id ${result.SubTreatmentTypeID}`);
+          navigate("/admin/addSubTreatment/" + id);
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error editing Sub-Treatment Type:", error);
+        alert("Failed to save Sub-Treatment Type. Please check schema constraints.");
+      }
+    } else {
+      try {
+        const { Created, Modified, SubTreatmentTypeID, _id, ...addData } = formData;
+        // Example API call:
+        const response = await fetch(
+          "http://localhost:3000/api/subtreatments/register",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(addData),
+          },
+        );
+
+        const result = await response.json();
+        console.log(result);
+        if (response.status == 201) {
+          alert(`Hospital added with id ${result.SubTreatmentTypeID}`);
+          navigate("/admin/getAllSubTreatments");
+        } else {
+          alert(`Error:${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error saving Sub-Treatment Type:", error);
+        alert("Failed to save Sub-Treatment Type. Please check schema constraints.");
+      }
     }
   };
+  const handleCancel = () =>{ if(id){navigate('/admin/addSubTreatment/'+id)}else{navigate('/admin/getAllSubTreatments')}};
 
-  const handleCancel = () => {
-    navigate('/admin/getAllSubTreatments');
-  };
 
   return (
     <div className={`min-h-screen bg-gray-50 text-slate-800 font-sans p-8 ${expanded ? "ml-64" : "ml-16"} transition-all duration-1000 animate-fade-in`}>
@@ -79,7 +144,7 @@ const AddSubTreatmentType = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-6">
 
             {/* Sub-Treatment Name */}
-            <div className="col-span-full lg:col-span-2">
+            <div className="">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Sub-Treatment Name <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -96,7 +161,7 @@ const AddSubTreatmentType = () => {
             </div>
 
             {/* Parent Treatment Category */}
-            <div className="col-span-full lg:col-span-1">
+            {/* <div className="col-span-full lg:col-span-1">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Main Treatment Type <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -112,6 +177,21 @@ const AddSubTreatmentType = () => {
                   <option value="2">Laboratory</option>
                   <option value="3">Radiology</option>
                 </select>
+              </div>
+            </div> */}
+            <div className="">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Main Treatment ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  name="TreatmentTypeID"
+                  required
+                  placeholder="e.g. Deep Tissue Massage or Blood Sugar Test"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.TreatmentTypeID}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 
@@ -148,6 +228,39 @@ const AddSubTreatmentType = () => {
               </div>
             </div>
 
+            {/* <div className="">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Main Treatment ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  name="TreatmentTypeID"
+                  required
+                  placeholder="e.g. Deep Tissue Massage or Blood Sugar Test"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.TreatmentTypeID}
+                  onChange={handleChange}
+                />
+              </div>
+            </div> */}
+
+            
+            <div className="">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">User ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="number" 
+                  name="UserID"
+                  required
+                  placeholder="User ID"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.UserID}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
             {/* Status Toggle */}
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-3 cursor-pointer group p-2 px-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all w-full">
@@ -166,7 +279,7 @@ const AddSubTreatmentType = () => {
             </div>
 
             {/* Description */}
-            <div className="col-span-full">
+            <div className="col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Notes / Guidelines</label>
               <div className="relative">
                 <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />

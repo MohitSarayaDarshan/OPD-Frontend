@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   FileText, 
@@ -12,46 +12,48 @@ import {
   XCircle,
   Trash2 // Added Trash icon
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const ReceiptDetailsAdmin = () => {
   const { expanded } = useContext(SidebarContext);
   const navigate = useNavigate();
+  const {id} = useParams();
 
-  const receiptData = {
-    ReceiptID: 1001,
-    ReceiptNo: "REC-2026-001",
-    ReceiptDate: "2026-01-02",
-    OPDNo: "OPD-5001",
-    AmountPaid: "500.00",
-    PaymentMode: "UPI / Digital",
-    ReferenceNo: "TXN99821002",
-    ReferenceDate: "2026-01-02",
-    Description: "General Consultation & Registration Fee",
-    CreatedBy: "Admin User",
-    IsCancelled: false,
-    cancellationDateTime: "-",
-    CancellationRemarks: "-"
-  };
+  const [receiptData, setReceiptData] = useState([])
 
-  // --- Delete Functionality ---
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete receipt ${receiptData.ReceiptNo}? This action cannot be undone.`
-    );
-
-    if (confirmDelete) {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        console.log(`Deleting Receipt ID: ${receiptData.ReceiptID}`);
+        const response = await fetch(`http://localhost:3000/api/receipts/${id}`);
+        const data = await response.json();
+        setReceiptData(data[0]);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  const handleDelete = async(id) => {
+ 
+    if(confirm("Are you sure you want to delete this Receipt record?")) {
+      try {
+        // TODO: Replace with actual API call
+        // await fetch(`/api/opds/${id}`, { method: 'DELETE' });
+        const req=await fetch(`http://localhost:3000/api/receipts/delete/${id}`,{
+          method:'DELETE'
+        })
+
+        if (!req==201) {
+        throw new Error('Failed to delete the record from the server');
+      }
+
         
-        // Placeholder for API Call:
-        // await axios.delete(`/api/receipts/${receiptData.ReceiptID}`);
-        
-        alert("Receipt deleted successfully");
-        navigate('/staff/getAllReceipts'); // Redirect to list after delete
+        alert(`Receipt deleted with ${id}`);
+        navigate('/admin/getAllReceipts');
       } catch (error) {
-        console.error("Delete failed:", error);
-        alert("Failed to delete the receipt. Please try again.");
+        console.error('Error deleting Receipt:', error);
+        alert('Failed to delete Receipt record. Please try again.');
       }
     }
   };
@@ -70,7 +72,7 @@ const ReceiptDetailsAdmin = () => {
           </button>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
             Receipt Voucher
-            {receiptData.IsCancelled ? (
+            {receiptData.cancellationDateTime ? (
               <span className="bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full uppercase tracking-wider font-bold border border-red-200">Cancelled</span>
             ) : (
               <span className="bg-emerald-100 text-emerald-600 text-xs px-3 py-1 rounded-full uppercase tracking-wider font-bold border border-emerald-200">Settled</span>
@@ -87,7 +89,7 @@ const ReceiptDetailsAdmin = () => {
 
           {/* Delete Button */}
           <button 
-            onClick={handleDelete}
+            onClick={()=>{handleDelete(id)}}
             className="flex items-center gap-2 px-6 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50 shadow-sm transition-all transform hover:scale-105 active:scale-95"
           >
             <Trash2 className="w-4 h-4" />
@@ -120,9 +122,9 @@ const ReceiptDetailsAdmin = () => {
               
               <div className="grid grid-cols-2 gap-4">
                 <DetailItem label="Receipt Date" value={receiptData.ReceiptDate} icon={<Calendar className="w-4 h-4" />} />
-                <DetailItem label="OPD ID" value={receiptData.OPDNo} icon={<Hash className="w-4 h-4" />} />
-                <DetailItem label="Payment Mode" value={receiptData.PaymentMode} icon={<CreditCard className="w-4 h-4" />} />
-                <DetailItem label="Collected By" value={receiptData.CreatedBy} icon={<User className="w-4 h-4" />} />
+                <DetailItem label="OPD ID" value={receiptData.OPDID} icon={<Hash className="w-4 h-4" />} />
+                <DetailItem label="Payment Mode" value={receiptData.PaymentModeID} icon={<CreditCard className="w-4 h-4" />} />
+                <DetailItem label="Collected By" value={receiptData.UserID} icon={<User className="w-4 h-4" />} />
               </div>
 
               <div>
@@ -144,10 +146,10 @@ const ReceiptDetailsAdmin = () => {
                 <DetailItem label="Reference Date" value={receiptData.ReferenceDate} />
               </div>
 
-              <div className={`rounded-xl p-5 border ${receiptData.IsCancelled ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
+              <div className={`rounded-xl p-5 border ${receiptData.cancellationDateTime ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
                 <div className="flex items-center gap-2 mb-3">
-                  <XCircle className={`w-4 h-4 ${receiptData.IsCancelled ? 'text-red-500' : 'text-slate-400'}`} />
-                  <span className={`text-xs font-bold uppercase ${receiptData.IsCancelled ? 'text-red-700' : 'text-slate-500'}`}>Cancellation Details</span>
+                  <XCircle className={`w-4 h-4 ${receiptData.cancellationDateTime ? 'text-red-500' : 'text-slate-400'}`} />
+                  <span className={`text-xs font-bold uppercase ${receiptData.cancellationDateTime ? 'text-red-700' : 'text-slate-500'}`}>Cancellation Details</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
                   <DetailItem label="Cancelled On" value={receiptData.cancellationDateTime} />
