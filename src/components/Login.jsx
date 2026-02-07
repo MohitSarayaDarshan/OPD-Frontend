@@ -65,32 +65,58 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 
 const Login = () => {
   // --- State Management ---
-  const [role, setRole] = useState('patient'); // Default role
+  const navigate=useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    identifier: '', // Email or Mobile
-    password: ''
+    Email: '', // Email or Mobile
+    Password: '',
+    Role:'admin'
   });
 
   // --- Handlers ---
   const handleRoleChange = (newRole) => {
-    setRole(newRole);
-    setFormData({ identifier: '', password: '' }); // Reset form on role switch
+    
+    setFormData({...formData,Role:newRole}); // Reset form on role switch
   };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    console.log(`Logging in as ${role}...`, formData);
+  const handleLogin =async (e) => {
+    console.log(`Logging in as ${formData.Role}...`, formData);
     // Add your authentication logic here
+    e.preventDefault();
+        try {
+            
+               
+                console.log("Logging User...", formData);
+                // After registration logic, navigate to login or dashboard
+
+                const res = await fetch("http://localhost:3000/api/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                if (!res.status == 201) {
+                    alert("Some error occurred");
+                } else {
+                    alert("User Logged Succesfully");
+                    // console.log(formData.Role)
+                    navigate("/"+formData.Role+"/dashboard");
+                }
+            
+        } catch (error) {
+            alert("Some error occurred");
+        }
     // e.g., navigate('/dashboard');
   };
 
@@ -128,13 +154,13 @@ const Login = () => {
 
           {/* Role Description dynamic text */}
           <div className="relative z-10 mt-12 bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20">
-             {role === 'admin' && (
+             {formData.Role === 'admin' && (
                 <p className="text-sm">👨‍💼 <span className="font-bold">Admin Access:</span> Full control over hospital master data, users, and financial reports.</p>
              )}
-             {role === 'staff' && (
+             {formData.Role  === 'staff' && (
                 <p className="text-sm">👩‍⚕️ <span className="font-bold">Staff Access:</span> Manage receipts, patient queues, and daily OPD registrations.</p>
              )}
-             {role === 'patient' && (
+             {formData.Role  === 'patient' && (
                 <p className="text-sm">🏥 <span className="font-bold">Patient Portal:</span> Book appointments, view history, and download prescriptions.</p>
              )}
           </div>
@@ -153,7 +179,7 @@ const Login = () => {
             <button 
               onClick={() => handleRoleChange('admin')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                role === 'admin' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
+                formData.Role === 'admin' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <Building2 className="w-4 h-4" /> Admin
@@ -161,7 +187,7 @@ const Login = () => {
             <button 
               onClick={() => handleRoleChange('staff')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                role === 'staff' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
+                formData.Role === 'staff' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <Stethoscope className="w-4 h-4" /> Staff
@@ -169,7 +195,7 @@ const Login = () => {
             <button 
               onClick={() => handleRoleChange('patient')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                role === 'patient' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
+                formData.Role === 'patient' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <User className="w-4 h-4" /> Patient
@@ -182,7 +208,7 @@ const Login = () => {
             {/* Identifier Input (Email/Mobile) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
-                {role === 'patient' ? 'Mobile Number or Email' : 'Email Address'}
+                {formData.Role === 'patient' ? 'Email' : 'Email Address'}
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -190,11 +216,11 @@ const Login = () => {
                 </div>
                 <input
                   type="text"
-                  name="identifier"
+                  name="Email"
                   required
                   className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-slate-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-gray-50 focus:bg-white focus:scale-[1.02]"
-                  placeholder={role === 'patient' ? "e.g. 9876543210" : "name@hospital.com"}
-                  value={formData.identifier}
+                  placeholder={formData.Role === 'patient' ? "Email Address" : "name@hospital.com"}
+                  value={formData.Email}
                   onChange={handleInputChange}
                 />
               </div>
@@ -214,11 +240,11 @@ const Login = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  name="password"
+                  name="Password"
                   required
                   className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg text-slate-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 bg-gray-50 focus:bg-white focus:scale-[1.02]"
                   placeholder="••••••••"
-                  value={formData.password}
+                  value={formData.Password}
                   onChange={handleInputChange}
                 />
                 <button
@@ -232,20 +258,20 @@ const Login = () => {
             </div>
 
             {/* Submit Button */}
-            <Link to={"/"+role+"/dashboard"}>
+            
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 active:scale-95"
             >
-              <span>Sign In as {role.charAt(0).toUpperCase() + role.slice(1)}</span>
+              <span>Sign In as {formData.Role.charAt(0).toUpperCase() + formData.Role.slice(1)}</span>
               <ChevronRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
             </button>
-            </Link>
+            
 
           </form>
 
           {/* Footer for Patient */}
-          {role === 'patient' && (
+          {formData.Role === 'patient' && (
             <div className="mt-8 text-center">
               <p className="text-sm text-slate-500">
                 New to our hospital?{' '}
