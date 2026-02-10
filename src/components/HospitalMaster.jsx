@@ -72,12 +72,13 @@ const HospitalMaster = () => {
 
 
   const [hospitalList, setHospitalList] = useState([])
+  const [isLoading,setIsLoading]=useState(true)
 
   useEffect(
     ()=>{
-      fetch("http://localhost:3000/api/hospitals/")
+      fetch("http://localhost:3000/api/hospitals/",{credentials:'include'})
       .then((res)=>res.json())
-      .then((json)=>setHospitalList(json))
+      .then((json)=>{console.log(json);setHospitalList(json),setIsLoading(false)})
     }
   ,[])
 
@@ -96,15 +97,28 @@ const HospitalMaster = () => {
     }
   };
 
+  
   // Filter Logic
-  const filteredHospitals = hospitalList.filter(hosp => 
-    hosp.HospitalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    hosp.Address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // useEffect(()=>{
+  //    filteredHospitals = hospitalList.filter(hosp => 
+  //   hosp.HospitalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   hosp.Address.toLowerCase().includes(searchTerm.toLowerCase())
+  // );},[hospitalList])
 //   const filteredHospitals = (hospitalList || []).filter(hosp => 
 //   hosp.HospitalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
 //   hosp.Address?.toLowerCase().includes(searchTerm.toLowerCase())
 // );
+
+const filteredHospitals = React.useMemo(() => {
+  return (hospitalList || []).filter(hosp => 
+    hosp.HospitalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    hosp.Address?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}, [hospitalList, searchTerm]);
+
+if(isLoading){
+  return <div>Loading your session........</div>
+}
 
   return (
     // Main Container with Sidebar Transition Logic

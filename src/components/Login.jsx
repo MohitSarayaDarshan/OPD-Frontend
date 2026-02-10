@@ -68,6 +68,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 
 
+
 const Login = () => {
   // --- State Management ---
   const navigate=useNavigate();
@@ -104,10 +105,13 @@ const Login = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify(formData),
+                    credentials:'include'
                 });
-
-                if (!res.status == 201) {
-                    alert("Some error occurred");
+                
+                const jsonRes=await res.json();
+                console.log(jsonRes)
+                if (!(res.status === 201)) {
+                    alert(jsonRes.message);
                 } else {
                     alert("User Logged Succesfully");
                     // console.log(formData.Role)

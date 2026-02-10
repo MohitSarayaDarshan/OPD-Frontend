@@ -7,11 +7,12 @@ import {
   HeartPulse
 } from 'lucide-react';
 import { SidebarContext } from '../contexts/Sidebar';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
     const {expanded}=useContext(SidebarContext)
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const navigate=useNavigate()
 
   // Example user data - usually comes from an Auth Context
   const user = {
@@ -19,9 +20,20 @@ const Navbar = () => {
     role: "Role"
   };
 
-  const handleLogout = () => {
-    console.log("Logging out...");
-    // Logic to clear tokens/context and redirect to login
+  const handleLogout =async () => {
+    
+    const res=await fetch('http://localhost:3000/api/logout',{credentials:'include'})
+    
+    if(res.status==201)
+    {
+      const json=await res.json()
+      alert(json.message)
+      navigate('/login')
+    }
+    else
+    {
+      alert("Some error occurred")
+    }
   };
 
   return (

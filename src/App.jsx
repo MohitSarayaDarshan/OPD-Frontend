@@ -6,7 +6,7 @@ import DiagnosisTypeMaster from "./components/DiagnosisTypeMaster";
 import DoctorMaster from "./components/DoctorMaster";
 
 import HospitalMaster from "./components/HospitalMaster";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from "react-router-dom";
 
 import Login from "./components/Login";
 
@@ -54,19 +54,60 @@ import ReceiptDetailsAdmin from "./components/ReceiptDetailsAdmin";
 import Register from "./components/Register";
 import LandingPage from "./components/LandingPage";
 import AddStaff from "./components/AddStaff";
+import { useEffect } from "react";
 
 function App() {
+
+  const [loading,setLoading]=useState(true)
+
+  const [user,setUser]=useState(null)
+
+  useEffect(()=>{
+    async function initAuth(){
+      try{
+         const res=await fetch('http://localhost:3000/api/me',{credentials:'include'})
+        
+         const json=await res.json()
+
+         console.log(json)
+        setUser((json.data)[0])
+      }
+      catch(e)
+      {
+        console.error("Auth check failed")
+      }
+      finally{
+        setLoading(false);
+        
+      }
+    }
+
+    initAuth()
+  },[])
+
+  useEffect(() => {
+  console.log("User updated:", user);
+}, [user]);
+
+  if(loading){
+    return <div className="spinner">Loading your session.......</div>
+  }
+  else{
     return (
         <>
             <BrowserRouter>
                 <Routes>
-                    <Route path="/" element={<LandingPage/>} />
+                    <Route path="/" element={
+  // Use optional chaining (?.) to prevent crashes 
+  // if user is still null/undefined during the first millisecond
+   user?.Role ? (<Navigate to={`/${user.Role.toLowerCase()}/dashboard`}  replace/>) : <LandingPage />
+} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register/>} />
                     <Route path="/admin" element={<AdminLayout />}>
                         
                         
-                        <Route path="/admin/dashboard" element={<DashboardAdmin />} />
+                        <Route path="dashboard" element={<DashboardAdmin />} />
                         <Route path="/admin/getAllHospitals" element={<HospitalMaster />} />
                         <Route path="/admin/getHospital/:id" element={<HospitalDetails />} />
                         <Route path="/admin/addHospital" element={<AddHospital/>} />
@@ -149,6 +190,8 @@ function App() {
             </BrowserRouter>
         </>
     );
+  }
+  
 }
 
 export default App;
