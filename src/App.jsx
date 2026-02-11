@@ -55,6 +55,8 @@ import Register from "./components/Register";
 import LandingPage from "./components/LandingPage";
 import AddStaff from "./components/AddStaff";
 import { useEffect } from "react";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Unauthorized from "./components/Unauthorized";
 
 function App() {
 
@@ -67,10 +69,13 @@ function App() {
       try{
          const res=await fetch('http://localhost:3000/api/me',{credentials:'include'})
         
+         if(res.status==200){
          const json=await res.json()
 
          console.log(json)
         setUser((json.data)[0])
+      }
+
       }
       catch(e)
       {
@@ -104,8 +109,11 @@ function App() {
 } />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register/>} />
-                    <Route path="/admin" element={<AdminLayout />}>
-                        
+                    <Route path="/unauthorized" element={<Unauthorized/>}/>
+                    <Route path="/admin" element={
+                      <ProtectedRoute allowedRoutes={['admin']}> 
+                      <AdminLayout />
+                       </ProtectedRoute>}>
                         
                         <Route path="dashboard" element={<DashboardAdmin />} />
                         <Route path="/admin/getAllHospitals" element={<HospitalMaster />} />
@@ -166,11 +174,15 @@ function App() {
                         <Route path="/admin/addReceipt" element={<AddReceipt />} />
                         <Route path="/admin/editReceipt/:id" element={<ReceiptDetails />} />
                         <Route path="/admin/deleteReceipt/:id" element={<ReceiptDetails />} />
-                          
+                    
                     </Route>
 
-                    <Route path="/staff" element={<StaffLayout/>}>
-                        
+                    <Route path="/staff" element={
+                      <ProtectedRoute allowedRoutes={['staff']}>
+                      <StaffLayout/>
+                      </ProtectedRoute>}>
+
+                  
                         <Route path="/staff/dashboard" element={<DashboardStaff />} />
 
 
@@ -179,12 +191,18 @@ function App() {
                         <Route path="/staff/addReceipt" element={<AddReceipt />} />
                         <Route path="/staff/editReceipt/:id" element={<ReceiptDetails />} />
                         <Route path="/staff/deleteReceipt/:id" element={<ReceiptDetails />} />
+                      
                     </Route>
 
-                    <Route path='/patient' element={<PatientLayout/>}>
+                    <Route path='/patient' element={
+                      <ProtectedRoute allowedRoutes={['patient']}>
+                      <PatientLayout/>
+                      </ProtectedRoute>}>
+                    
                           <Route path="/patient/dashboard" element={<DashboardPatient/>}/>
                           <Route path="/patient/bookAppointment" element={<DoctorMasterPatient/>} />
                           <Route path="/patient/getAllVisits" element={<PatientVisits/>}/>
+                    
                     </Route>
                 </Routes>
             </BrowserRouter>

@@ -114,6 +114,7 @@ const Login = () => {
                     alert(jsonRes.message);
                 } else {
                     alert("User Logged Succesfully");
+                    setFormData(jsonRes)
                     // console.log(formData.Role)
                     navigate("/"+formData.Role+"/dashboard");
                 }

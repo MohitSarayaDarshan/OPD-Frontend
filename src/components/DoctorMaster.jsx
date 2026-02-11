@@ -367,7 +367,7 @@ const DoctorMaster = () => {
   
     useEffect(
       ()=>{
-        fetch("http://localhost:3000/api/doctors/")
+        fetch("http://localhost:3000/api/doctors/",{credentials:'include'})
         .then((res)=>res.json())
         .then((json)=>setDoctorList(json))
       }
