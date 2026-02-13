@@ -66,12 +66,14 @@ import {
   EyeOff
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/useAuth';
 
 
 
 const Login = () => {
   // --- State Management ---
   const navigate=useNavigate();
+  const {setUser}=useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     Email: '', // Email or Mobile
@@ -109,11 +111,12 @@ const Login = () => {
                 });
                 
                 const jsonRes=await res.json();
-                console.log(jsonRes)
+                console.log("jsonRes",jsonRes)
                 if (!(res.status === 201)) {
                     alert(jsonRes.message);
                 } else {
                     alert("User Logged Succesfully");
+                    setUser((jsonRes.data)[0])
                     setFormData(jsonRes)
                     // console.log(formData.Role)
                     navigate("/"+formData.Role+"/dashboard");

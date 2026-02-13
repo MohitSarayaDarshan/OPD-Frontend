@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { SidebarContext } from '../contexts/Sidebar';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/useAuth';
 
 const Navbar = () => {
     const {expanded}=useContext(SidebarContext)
@@ -15,10 +16,7 @@ const Navbar = () => {
   const navigate=useNavigate()
 
   // Example user data - usually comes from an Auth Context
-  const user = {
-    name: "User",
-    role: "Role"
-  };
+  const {user,setUser}=useAuth()
 
   const handleLogout =async () => {
     
@@ -26,9 +24,8 @@ const Navbar = () => {
     
     if(res.status==201)
     {
-      const json=await res.json()
-      alert(json.message)
-      navigate('/login')
+      setUser(null)
+      navigate('/login',{replace:true})
     }
     else
     {
@@ -87,7 +84,7 @@ const Navbar = () => {
                 <p className="text-xs text-slate-500">{user.role}</p>
               </div>
               
-              <Link to='/'>
+              
               <button 
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
@@ -95,7 +92,7 @@ const Navbar = () => {
                 <LogOut className="w-4 h-4" />
                 Logout Account
               </button>
-              </Link>
+            
             </div>
           </>
         )}

@@ -1,6 +1,7 @@
 import React from 'react'
 import { createContext, useContext } from "react";
 import { useEffect, useState } from "react";
+// import jwtDecode from "jwt-decode"
 
 export const AuthContext=createContext(null)
 
@@ -15,13 +16,27 @@ export function AuthProvider({ children }) {
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        setUser((data.data)[0]);
-        setLoading(false);
-      });
+        if(data && data.data && data.data.length>0){
+          setUser((data.data)[0]);
+        }
+        else
+        {
+          setUser(null)
+        }
+      })
+      .catch(err=>{
+        console.error("Auth check failed: ",err)
+        setUser(null)
+      })
+      .finally(()=>{
+        setLoading(false)
+      })
+        
   }, []);
 
+  
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider value={{user,setUser,loading}}>
       {children}
     </AuthContext.Provider>
   );

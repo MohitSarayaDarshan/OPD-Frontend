@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useAuth } from '../contexts/useAuth'
 import { Navigate } from 'react-router-dom'
-function ProtectedRoute({allowedRoutes,children}) {
-  const {user,loading}=useAuth()
-
+function  ProtectedRoute({allowedRoutes,children}) {
+  
+  const {user,loading}= useAuth()
+  
   console.log(user)
 
   if(loading){
@@ -19,6 +20,7 @@ function ProtectedRoute({allowedRoutes,children}) {
   }
 
   return children
+
 }
 
 export default ProtectedRoute
