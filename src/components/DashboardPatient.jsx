@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Calendar, 
@@ -23,19 +23,42 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
+import { useAuth } from '../contexts/useAuth';
 
 const DashboardPatient = () => {
   const { expanded } = useContext(SidebarContext);
+  const {user}=useAuth();
+  console.log("user: "+JSON.stringify(user))
 
   // --- Dummy Data ---
   
   // Patient Profile
-  const patient = {
-    name: "Rahul Verma",
-    id: "PAT-2025-1001",
-    age: 34,
-    bloodGroup: "O+"
+  // 1. Correct destructuring [brackets]
+const [patient, setPatient] = useState({}); 
+
+useEffect(() => {
+  // 2. Define async function inside
+  const fetchPatient = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/patients/email', {
+        method: "POST", // 3. Changed to POST to allow sending the body
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: 'include',
+        body: JSON.stringify(user) 
+      });
+
+      const jsonRes = await res.json();
+      console.log("jsonRes",jsonRes);
+      setPatient(jsonRes[0]);
+    } catch (err) {
+      console.error("Failed to fetch patient data", err);
+    }
   };
+
+  if (user) fetchPatient();
+}, [user]); // 4. Depend on user so it runs once user is logged in
 
   // Next Scheduled Appointment
   const nextAppointment = {
@@ -70,8 +93,8 @@ const DashboardPatient = () => {
       {/* --- Header Section --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back, {patient.name} 👋</h1>
-          <p className="text-sm text-slate-500 mt-1">UHID: {patient.id} | <span className="text-blue-600 font-semibold">{patient.age} Yrs, {patient.bloodGroup}</span></p>
+          <h1 className="text-2xl font-bold text-slate-900">Welcome back, {patient.PatientName} 👋</h1>
+          <p className="text-sm text-slate-500 mt-1">UHID: {patient.PatientNo} | <span className="text-blue-600 font-semibold">{patient.Age} Yrs, {patient.BloodGroup}</span></p>
         </div>
         
         
@@ -186,23 +209,7 @@ const DashboardPatient = () => {
         {/* --- RIGHT COLUMN (1/3 width) --- */}
         <div className="space-y-8">
             
-            {/* 4. Stats Summary */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Weight</p>
-                    <div className="flex items-baseline gap-1 mt-1">
-                        <h3 className="text-2xl font-bold text-slate-900">72</h3>
-                        <span className="text-sm text-slate-500 font-medium">kg</span>
-                    </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Height</p>
-                    <div className="flex items-baseline gap-1 mt-1">
-                        <h3 className="text-2xl font-bold text-slate-900">178</h3>
-                        <span className="text-sm text-slate-500 font-medium">cm</span>
-                    </div>
-                </div>
-            </div>
+        
 
             {/* 5. Recent Activity Feed */}
             <div className="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden">
