@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { SidebarContext } from '../contexts/Sidebar';
 import { 
   Search, 
@@ -12,68 +12,147 @@ import {
   Activity,
   Clock
 } from 'lucide-react';
+import { useAuth } from '../contexts/useAuth';
 
 const PatientVisits = () => {
   const { expanded } = useContext(SidebarContext);
   const [searchTerm, setSearchTerm] = useState('');
+  const [visits,setVisits]=useState([])
+  const {user}=useAuth();
+
+  const [patient, setPatient] = useState({}); 
+
+  console.log("user:",user)
+  
+  useEffect(() => {
+    // 2. Define async function inside
+    const fetchPatient = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/patients/email', {
+          method: "POST", // 3. Changed to POST to allow sending the body
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: 'include',
+          body: JSON.stringify(user) 
+        });
+  
+        const jsonRes = await res.json();
+        console.log("jsonRes",jsonRes[0]);
+        setPatient(jsonRes[0]);
+        console.log(patient)
+      } catch (err) {
+        console.error("Failed to fetch patient data", err);
+      }
+    };
+  
+    if (user) fetchPatient();
+  }, [user]);
 
   // Dummy Data: Patient's Visit History
-  const visits = [
-    {
-      id: "OPD-2025-1001",
-      date: "10 Jan, 2026",
-      time: "10:30 AM",
-      doctor: "Dr. Arjun Mehta",
-      specialty: "Cardiologist",
-      hospital: "City Care General Hospital",
-      diagnosis: "Mild Hypertension",
-      symptoms: "Headache, Dizziness",
-      prescriptionAvailable: true,
-      status: "Completed"
-    },
-    {
-      id: "OPD-2025-0890",
-      date: "15 Dec, 2025",
-      time: "04:15 PM",
-      doctor: "Dr. Priya Sharma",
-      specialty: "Dermatologist",
-      hospital: "Sunrise Multispeciality",
-      diagnosis: "Allergic Dermatitis",
-      symptoms: "Redness, Itching on arm",
-      prescriptionAvailable: true,
-      status: "Completed"
-    },
-    {
-      id: "OPD-2025-0750",
-      date: "22 Nov, 2025",
-      time: "11:00 AM",
-      doctor: "Dr. Rajesh Gupta",
-      specialty: "General Physician",
-      hospital: "City Care General Hospital",
-      diagnosis: "Viral Fever",
-      symptoms: "High temperature, Body ache",
-      prescriptionAvailable: true,
-      status: "Completed"
-    },
-    {
-      id: "OPD-2025-0620",
-      date: "05 Oct, 2025",
-      time: "09:30 AM",
-      doctor: "Dr. Vikram Singh",
-      specialty: "Orthopedic",
-      hospital: "Apex Heart Institute",
-      diagnosis: "Ankle Sprain",
-      symptoms: "Swelling, Pain while walking",
-      prescriptionAvailable: false, // Maybe just a consultation, no meds
-      status: "Follow Up"
+  // const visits = [
+  //   {
+  //     id: "OPD-2025-1001",
+  //     date: "10 Jan, 2026",
+  //     time: "10:30 AM",
+  //     doctor: "Dr. Arjun Mehta",
+  //     specialty: "Cardiologist",
+  //     hospital: "City Care General Hospital",
+  //     diagnosis: "Mild Hypertension",
+  //     symptoms: "Headache, Dizziness",
+  //     prescriptionAvailable: true,
+  //     IsFollowUpCase: "Completed"
+  //   },
+  //   {
+  //     id: "OPD-2025-0890",
+  //     date: "15 Dec, 2025",
+  //     time: "04:15 PM",
+  //     doctor: "Dr. Priya Sharma",
+  //     specialty: "Dermatologist",
+  //     hospital: "Sunrise Multispeciality",
+  //     diagnosis: "Allergic Dermatitis",
+  //     symptoms: "Redness, Itching on arm",
+  //     prescriptionAvailable: true,
+  //     IsFollowUpCase: "Completed"
+  //   },
+  //   {
+  //     id: "OPD-2025-0750",
+  //     date: "22 Nov, 2025",
+  //     time: "11:00 AM",
+  //     doctor: "Dr. Rajesh Gupta",
+  //     specialty: "General Physician",
+  //     hospital: "City Care General Hospital",
+  //     diagnosis: "Viral Fever",
+  //     symptoms: "High temperature, Body ache",
+  //     prescriptionAvailable: true,
+  //     IsFollowUpCase: "Completed"
+  //   },
+  //   {
+  //     id: "OPD-2025-0620",
+  //     date: "05 Oct, 2025",
+  //     time: "09:30 AM",
+  //     doctor: "Dr. Vikram Singh",
+  //     specialty: "Orthopedic",
+  //     hospital: "Apex Heart Institute",
+  //     diagnosis: "Ankle Sprain",
+  //     symptoms: "Swelling, Pain while walking",
+  //     prescriptionAvailable: false, // Maybe just a consultation, no meds
+  //     IsFollowUpCase: "Follow Up"
+  //   }
+  // ];
+
+  console.log("patient: ",patient)
+
+  // useEffect(() => {
+  //   // 2. Define async function inside
+  //   const fetchVisit = async () => {
+  //     try {
+  //       const res = await fetch('http://localhost:3000/api/opds/visits/'+patient.PatientID, {
+  //         method: "GET",// 3. Changed to POST to allow sending the body,
+  //         credentials:'include'
+  //       });
+  
+  //       const jsonRes = await res.json();
+  //       console.log("jsonResVisits",jsonRes);
+  //       setVisits(jsonRes);
+  //     } catch (err) {
+  //       console.error("Failed to fetch patient data", err);
+  //     }
+  //   };
+  
+  //   if (patient) fetchVisit();
+  // }, [patient]); 
+
+  useEffect(() => {
+  const fetchVisit = async () => {
+    // Only fetch if we actually have a PatientID
+    if (!patient?.PatientID) return; 
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/opds/visits/${patient.PatientID}`, {
+        method: "GET",
+        credentials: 'include'
+      });
+
+      const jsonRes = await res.json();
+      // Ensure jsonRes is an array before setting state
+      console.log("jsonResVisits",jsonRes);
+      setVisits(Array.isArray(jsonRes) ? jsonRes : []);
+
+    } catch (err) {
+      console.error("Failed to fetch visit data", err);
     }
-  ];
+  };
+
+  fetchVisit();
+}, [patient.PatientID]); // Use the ID specifically as the dependency
+
+
 
   // Filter Logic
   const filteredVisits = visits.filter(visit => 
-    visit.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    visit.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    visit.hospital.toLowerCase().includes(searchTerm.toLowerCase())
+    visit.DoctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    visit.HospitalName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -110,7 +189,7 @@ const PatientVisits = () => {
         {filteredVisits.length > 0 ? (
           filteredVisits.map((visit, index) => (
             <div 
-              key={visit.id} 
+              key={visit.OPDID} 
               className="bg-white rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300 p-0 overflow-hidden flex flex-col md:flex-row"
             >
                 {/* Left: Date & Time Panel */}
@@ -118,47 +197,47 @@ const PatientVisits = () => {
                     <div className="p-3 bg-white rounded-full shadow-sm mb-2 text-blue-600">
                         <Calendar className="w-6 h-6" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">{visit.date.split(',')[0]}</h3>
-                    <p className="text-sm text-slate-500">{visit.date.split(',')[1]}</p>
-                    <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-slate-400">
+                    <h3 className="text-lg font-bold text-slate-800">{visit.OPDDateTime.split(',')[0]}</h3>
+                    <p className="text-sm text-slate-500">{visit.OPDDateTime.split(',')[1]}</p>
+                    {/* <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-slate-400">
                         <Clock className="w-3 h-3" /> {visit.time}
-                    </span>
+                    </span> */}
                 </div>
 
                 {/* Middle: Visit Details */}
                 <div className="p-6 flex-1">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
                         <div>
-                            <h2 className="text-lg font-bold text-slate-900">{visit.doctor}</h2>
-                            <p className="text-sm text-blue-600 font-medium flex items-center gap-1">
+                            <h2 className="text-lg font-bold text-slate-900">{visit.DoctorName}</h2>
+                            {/* <p className="text-sm text-blue-600 font-medium flex items-center gap-1">
                                 <Stethoscope className="w-3.5 h-3.5" />
                                 {visit.specialty}
-                            </p>
+                            </p> */}
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                            visit.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'
+                            visit.IsFollowUpCase === true ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'
                         }`}>
-                            {visit.status}
+                            {visit.IsFollowUpCase}
                         </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
                         <div className="flex items-start gap-2">
                             <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                            <span className="text-slate-600">{visit.hospital}</span>
+                            <span className="text-slate-600">{visit.HospitalName}</span>
                         </div>
-                        <div className="flex items-start gap-2">
+                        {/* <div className="flex items-start gap-2">
                             <Activity className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                             <div>
                                 <span className="font-semibold text-slate-700">Diagnosis: </span>
                                 <span className="text-slate-600">{visit.diagnosis}</span>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                     
-                    <div className="text-sm text-slate-500 italic bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    {/* <div className="text-sm text-slate-500 italic bg-gray-50 p-3 rounded-lg border border-gray-100">
                         "Symptoms reported: {visit.symptoms}"
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Right: Actions Panel */}
@@ -176,7 +255,7 @@ const PatientVisits = () => {
                     )}
 
                     <div className="text-center mt-1">
-                        <span className="text-[10px] text-slate-400 font-mono">ID: {visit.id}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">ID: {visit.OPDID}</span>
                     </div>
                 </div>
             </div>
