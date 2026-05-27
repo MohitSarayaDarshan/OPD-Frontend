@@ -1,0 +1,314 @@
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { SidebarContext } from '../contexts/Sidebar';
+import { 
+  Save, 
+  X, 
+  Receipt, 
+  Calendar, 
+  CreditCard, 
+  FileText, 
+  Hash, 
+  User, 
+  IndianRupee 
+} from 'lucide-react';
+import { useAuth } from '../contexts/useAuth';
+
+const AddReceipt = () => {
+  const { expanded } = useContext(SidebarContext);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { user } = useAuth(); // Get logged in user info
+
+  // --- Form State ---
+  const [formData, setFormData] = useState({
+    ReceiptDate: '',
+    OPDID: '',
+    AmountPaid: '',
+    Description: '',
+    UserID: '',
+    PaymentModeID: '',
+    ReferenceNo: '',
+    ReferenceDate: '',
+  });
+
+  // --- EFFECT 1: Fetch Existing Receipt (Edit Mode) ---
+  useEffect(() => {
+    if (id) {
+      fetch(`http://localhost:3000/api/receipts/${id}`, { credentials: 'include' })
+        .then((res) => res.json())
+        .then((json) => {
+          // If your API returns an array, use json[0]. If it returns an object, use json.
+          if (json && (json[0] || json.ReceiptNo)) {
+            setFormData(json[0] || json); 
+          }
+        })
+        .catch(err => console.error("Error fetching receipt:", err));
+    }
+  }, [id]);
+
+  // --- EFFECT 2: Auto-fill UserID ---
+  useEffect(() => {
+    if (user && !id) {
+      setFormData(prev => ({ ...prev, UserID: user.UserID }));
+    }
+  }, [user, id]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "";
+    const dateObj = new Date(dateString);
+    return new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000))
+      .toISOString()
+      .slice(0, 16);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const apiUrl = id 
+      ? `http://localhost:3000/api/receipts/update/${id}` 
+      : "http://localhost:3000/api/receipts/register";
+    
+    const method = id ? "PUT" : "POST";
+
+    try {
+      // Remove metadata fields before sending to prevent schema errors
+      const { Created, Modified, ReceiptID, _id, ReceiptNo, __v, ...submitData } = formData;
+      console.log(submitData)
+      const response = await fetch(apiUrl, {
+        method: method,
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submitData),
+      });
+
+      const result = await response.json();
+      if (response.ok || response.status === 201) {
+        alert(`Receipt ${id ? 'updated' : 'registered'} successfully!`);
+        navigate(`/${user.Role}/getAllReceipts`);
+      } else {
+        alert(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to save receipt.");
+    }
+  };
+
+  const handleCancel = () => {
+    if (id) {
+      navigate(`/${user.Role}/getReceipt/${id}`);
+    } else {
+      navigate(`/${user.Role}/getAllReceipts`);
+    }
+  };
+
+  return (
+    <div className={`min-h-screen bg-gray-50 text-slate-800 font-sans p-8 ${expanded ? "ml-64" : "ml-16"} transition-all duration-1000 animate-fade-in`}>
+      
+      {/* --- Header --- */}
+      <div className="flex justify-between items-center mb-8 animate-slide-down">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Create New Receipt</h1>
+          <p className="text-sm text-slate-500 mt-1">Generate a payment receipt for an OPD visit.</p>
+        </div>
+      </div>
+
+      {/* --- Form Container --- */}
+      <div className="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden max-w-4xl mx-auto animate-scale-in">
+        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2 text-blue-800 font-semibold">
+          <Receipt className="w-5 h-5" />
+          <h2>Receipt Details</h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+
+            {/* --- Section 1: Basic Info --- */}
+            <div className="col-span-1 md:col-span-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-gray-100 pb-2">
+              General Information
+            </div>
+
+            {/* Receipt No */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Receipt Number <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  name="ReceiptNo"
+                  required
+                  placeholder="Auto-generated"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-300 rounded-lg text-sm text-slate-500 outline-none cursor-not-allowed"
+                  
+                  value={formData.ReceiptNo}
+                 
+                  readOnly
+                />
+              </div>
+            </div>
+
+            {/* Receipt Date */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Receipt Date <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="datetime-local" 
+                  name="ReceiptDate"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formatDateTime(formData.ReceiptDate)}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* OPD ID (Linked) */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">OPD Registration ID <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="number" 
+                  name="OPDID"
+                  required
+                  placeholder="Enter Linked OPD ID"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.OPDID}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* User ID (Usually hidden/auto-filled, but kept here as per schema) */}
+            <div>
+              <label className="block text-sm font-semibold  mb-2">User ID</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="number" 
+                  name="UserID"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.UserID}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* --- Section 2: Financials --- */}
+            <div className="col-span-1 md:col-span-2 text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2 border-b border-gray-100 pb-2">
+              Payment Details
+            </div>
+
+            {/* Amount Paid */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Amount Paid <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 flex items-center justify-center font-bold">₹</div>
+                <input 
+                  type="number" 
+                  name="AmountPaid"
+                  required
+                  placeholder="0.00"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formData.AmountPaid}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Payment Mode */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Payment Mode <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <select 
+                  name="PaymentModeID"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all appearance-none"
+                  value={formData.PaymentModeID}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Mode...</option>
+                  <option value="1">Cash</option>
+                  <option value="2">UPI</option>
+                  <option value="3">Credit/Debit Card</option>
+                  <option value="4">Net Banking</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Reference No (Conditional based on payment mode logic, usually) */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Transaction Ref No.</label>
+              <input 
+                type="text" 
+                name="ReferenceNo"
+                placeholder="UPI ID / Cheque No / Txn ID"
+                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                value={formData.ReferenceNo}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Reference Date */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Transaction Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="datetime-local" 
+                  name="ReferenceDate"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
+                  value={formatDateTime(formData.ReferenceDate)}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Description / Remarks</label>
+              <textarea 
+                name="Description"
+                rows="3"
+                placeholder="Any additional notes about this payment..."
+                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all resize-none"
+                value={formData.Description}
+                onChange={handleChange}
+              ></textarea>
+            </div>
+
+          </div>
+
+          {/* --- Actions --- */}
+          <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-100">
+            <button 
+              type="button"
+              onClick={handleCancel}
+              className="flex items-center gap-2 px-6 py-2.5 border border-gray-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:scale-105 active:scale-95"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95"
+            >
+              <Save className="w-4 h-4" />
+              Save Receipt
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AddReceipt;
