@@ -1,11 +1,10 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { SidebarContext } from '../contexts/Sidebar';
-import { io } from 'socket.io-client';
 import {
     Search, Filter, CheckCircle, XCircle, Clock, User,
     Stethoscope, Calendar, Phone
 } from 'lucide-react';
-import { useAuth } from '../contexts/UseAuth'; // ✅ capital U — matches your file UseAuth.jsx
+import { useAuth } from '../contexts/UseAuth';
 
 const AppointmentMasterStaff = () => {
     const { expanded } = useContext(SidebarContext);
@@ -17,7 +16,8 @@ const AppointmentMasterStaff = () => {
     const [loading, setLoading] = useState(true);
     const [updatingID, setUpdatingID] = useState(null);
     const [staffInfo, setStaffInfo] = useState(null);
-    const [currentConsultation, setCurrentConsultation] = useState(null);
+
+    const [liveDoctorConsultations, setLiveDoctorConsultations] = useState({}); 
     const [selectedDoctorID, setSelectedDoctorID] = useState(null);
 
     // Fetch all appointments for this staff's hospital
@@ -43,6 +43,7 @@ const AppointmentMasterStaff = () => {
         fetchAppointments();
     }, [user]);
 
+    // Fetch staff info by email session context
     useEffect(() => {
         if (!user?.Email) return;
 
@@ -65,27 +66,75 @@ const AppointmentMasterStaff = () => {
         fetchStaff();
     }, [user]);
 
+    // Fetch baseline running sessions from DB on initial load or page reload
     useEffect(() => {
-        if (!staffInfo?.StaffID) return;
+        const fetchLiveQueuesBaseline = async () => {
+            try {
+                const res = await fetch('http://localhost:3000/api/appointments/live-queues', { 
+                    credentials: 'include' 
+                });
+                if (res.ok) {
+                    const initialActiveQueues = await res.json();
+                    setLiveDoctorConsultations(initialActiveQueues);
+                }
+            } catch (err) {
+                console.error("Error fetching baseline active sessions on reload:", err);
+            }
+        };
 
-        const socket = io('http://localhost:3000', { withCredentials: true });
-        socket.emit('register', { role: 'staff', id: staffInfo.StaffID });
+        if (user) {
+            fetchLiveQueuesBaseline();
+        }
+    }, [user]);
 
-        socket.on('consultationStarted', (payload) => {
-            setCurrentConsultation(payload);
-            setAppointments(prev =>
-                prev.map(a =>
-                    a.AppointmentID === payload.AppointmentID
-                        ? { ...a, ConsultationPhase: 'InConsultation' }
-                        : a
-                )
-            );
+    // ✅ NEW CLEAN NATIVE SSE LIVE LISTENER STREAM (Replaced complex Socket.io rooms blocks completely)
+    useEffect(() => {
+        if (!appointments.length) return;
+
+        const activeStreams = [];
+        
+        // Target and parse out unique doctor IDs currently active under this hospital layout context
+        const uniqueDoctorIDs = [...new Set(appointments.map(a => a.DoctorID))];
+
+        uniqueDoctorIDs.forEach(docId => {
+            const source = new EventSource(`http://localhost:3000/api/appointments/stream/doctor/${docId}`, {
+                withCredentials: true
+            });
+
+            source.onmessage = (event) => {
+                const payload = JSON.parse(event.data);
+                
+                // Keep-alive server messages won't contain a DoctorID field, ignore them safely
+                if (!payload.DoctorID) return; 
+
+                // 1. Point update specific doctor details inside state dictionary object mapping
+                setLiveDoctorConsultations(prev => ({
+                    ...prev,
+                    [payload.DoctorID]: payload
+                }));
+
+                // 2. Synchronize main list records status tags down the UI viewport data array grid
+                setAppointments(prev =>
+                    prev.map(a =>
+                        a.DoctorID === payload.DoctorID && a.TokenNumber === payload.CurrentLiveToken
+                            ? { ...a, ConsultationPhase: 'InConsultation' }
+                            : a
+                    )
+                );
+            };
+
+            source.onerror = (err) => {
+                console.error(`SSE Sync Drop Encountered on Stream Channel Doctor ID #${docId}:`, err);
+            };
+
+            activeStreams.push(source);
         });
 
+        // Cleanup: Tear down and close all active HTTP streams when component dependencies reload or unmount
         return () => {
-            socket.disconnect();
+            activeStreams.forEach(source => source.close());
         };
-    }, [staffInfo]);
+    }, [appointments]);
 
     // Keep a selected doctor id in sync with available appointments
     useEffect(() => {
@@ -100,10 +149,6 @@ const AppointmentMasterStaff = () => {
         setUpdatingID(appointmentID);
         try {
             let bodyPayload = { Status: newStatus };
-
-            if (newStatus === 'Confirmed') {
-                // Token is assigned automatically by the server based on appointment date and existing confirmed appointments.
-            }
 
             if (newStatus === 'Rejected') {
                 const rejectMessage = window.prompt('Enter a rejection message for the patient:');
@@ -124,11 +169,7 @@ const AppointmentMasterStaff = () => {
             const updatedAppointment = await res.json();
             if (res.ok) {
                 setAppointments(prev =>
-                    prev.map(a =>
-                        a.AppointmentID === appointmentID
-                            ? { ...a, ...updatedAppointment }
-                            : a
-                    )
+                    prev.map(a => a.AppointmentID === appointmentID ? { ...a, ...updatedAppointment } : a)
                 );
             } else {
                 alert(updatedAppointment.message || 'Failed to update status. Please try again.');
@@ -147,6 +188,7 @@ const AppointmentMasterStaff = () => {
         try {
             const body = { Email: user.Email };
             if (selectedDoctorID) body.DoctorID = selectedDoctorID;
+            
             const res = await fetch('http://localhost:3000/api/appointments/next', {
                 method: 'PUT',
                 credentials: 'include',
@@ -154,12 +196,10 @@ const AppointmentMasterStaff = () => {
                 body: JSON.stringify(body)
             });
             const json = await res.json();
+            
             if (res.ok) {
-                fetchAppointments();
-                if (json.nextAppointment) {
-                    setCurrentConsultation(json.nextAppointment);
-                }
-                else {
+                fetchAppointments(); // Refresh layout arrays
+                if (!json.nextAppointment) {
                     alert(json.message || 'No waiting confirmed appointments.');
                 }
             } else {
@@ -181,7 +221,6 @@ const AppointmentMasterStaff = () => {
         });
     };
 
-    // Filter by search + status tab
     const filtered = appointments.filter(a => {
         const matchSearch =
             a.PatientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -203,17 +242,8 @@ const AppointmentMasterStaff = () => {
         return 'bg-amber-100 text-amber-700 border-amber-200';
     };
 
-    const activeConsultation = (() => {
-        if (selectedDoctorID) {
-            // Prefer a currently 'InConsultation' appointment for the selected doctor
-            const byDoctor = appointments.find(a => a.ConsultationPhase === 'InConsultation' && a.DoctorID === selectedDoctorID);
-            if (byDoctor) return byDoctor;
-            // Fallback to last socket payload only if it belongs to the selected doctor
-            if (currentConsultation && currentConsultation.DoctorID === selectedDoctorID) return currentConsultation;
-            return null;
-        }
-        return `No active consultation for this doctor`
-    })();
+    // Calculate adaptive session running state parameters natively
+    const isSessionActive = selectedDoctorID && liveDoctorConsultations[selectedDoctorID]?.CurrentLiveToken;
 
     return (
         <div className={`min-h-screen bg-gray-50 text-slate-800 font-sans p-8 ${expanded ? "ml-64" : "ml-16"} transition-all duration-1000 animate-fade-in`}>
@@ -225,17 +255,47 @@ const AppointmentMasterStaff = () => {
             </div>
 
             <div className="mb-6 grid gap-4 md:grid-cols-[1fr_auto]">
+                {/* 1. Dynamic Consultation Status Card Summary Banner */}
                 <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm text-slate-700">
-                    {activeConsultation ? (
-                        <div className="space-y-1">
-                            <p className="font-semibold text-slate-900">Now consulting</p>
-                            <p className="text-base text-slate-800">Token #{activeConsultation.TokenNumber || '-'} {activeConsultation.PatientName ? `· ${activeConsultation.PatientName}` : ''}</p>
-                            {activeConsultation.DoctorName && <p className="text-xs text-slate-500">Doctor: {activeConsultation.DoctorName}</p>}
-                        </div>
+                    {selectedDoctorID ? (
+                        liveDoctorConsultations[selectedDoctorID] && liveDoctorConsultations[selectedDoctorID].CurrentLiveToken ? (
+                            <div className="space-y-1">
+                                <p className="font-semibold text-slate-900">Now consulting</p>
+                                <p className="text-base text-slate-800">
+                                    Token #{liveDoctorConsultations[selectedDoctorID].CurrentLiveToken} 
+                                    {liveDoctorConsultations[selectedDoctorID].PatientName ? ` · ${liveDoctorConsultations[selectedDoctorID].PatientName}` : ''}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    Doctor: {liveDoctorConsultations[selectedDoctorID].DoctorName || `Doctor ${selectedDoctorID}`}
+                                </p>
+                            </div>
+                        ) : (
+                            <span>No patient currently in consultation for this doctor.</span>
+                        )
                     ) : (
-                        <span>No patient currently in consultation.</span>
+                        <div className="space-y-2">
+                            <p className="font-semibold text-slate-900">Active Live Queues Summary</p>
+                            {Object.keys(liveDoctorConsultations).length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                    {Object.values(liveDoctorConsultations).map((consultation) => (
+                                        consultation.CurrentLiveToken && (
+                                            <div key={consultation.DoctorID} className="border-l-2 border-blue-300 pl-2">
+                                                <span className="font-medium text-slate-800">{consultation.DoctorName}: </span>
+                                                <span className="text-blue-600 font-semibold">
+                                                    Token #{consultation.CurrentLiveToken}
+                                                </span>
+                                            </div>
+                                        )
+                                    ))}
+                                </div>
+                            ) : (
+                                <span className="text-xs text-slate-500">Select a doctor to view and manage their live queue.</span>
+                            )}
+                        </div>
                     )}
                 </div>
+
+                {/* 2. Controls Area (Adaptive Button Context) */}
                 <div className="flex items-center gap-3">
                     <select
                         value={selectedDoctorID ?? ''}
@@ -244,16 +304,27 @@ const AppointmentMasterStaff = () => {
                     >
                         <option value="">All doctors</option>
                         {Array.from(new Map(appointments.map(a => [a.DoctorID, a]))).map(([, d]) => (
-                            <option key={d.DoctorID} value={d.DoctorID}>{d.DoctorName || `Doctor ${d.DoctorID}`}</option>
+                            <option key={d.DoctorID} value={d.DoctorID}>
+                                {d.DoctorName || `Doctor ${d.DoctorID}`}
+                            </option>
                         ))}
                     </select>
 
                     <button
                         onClick={handleNextPatient}
-                        disabled={updatingID === 'next'}
-                        className="h-fit rounded-3xl bg-blue-600 px-6 py-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={updatingID === 'next' || !selectedDoctorID}
+                        className={`h-fit rounded-3xl px-6 py-4 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            isSessionActive 
+                                ? 'bg-blue-600 hover:bg-blue-700' 
+                                : 'bg-emerald-600 hover:bg-emerald-700'
+                        }`}
                     >
-                        {updatingID === 'next' ? 'Moving...' : 'Next Patient'}
+                        {updatingID === 'next' 
+                            ? 'Moving...' 
+                            : isSessionActive 
+                                ? 'Next Patient' 
+                                : 'Start Doctor Session'
+                        }
                     </button>
                 </div>
             </div>
@@ -261,7 +332,8 @@ const AppointmentMasterStaff = () => {
             <div className="mb-4 text-xs text-slate-500">
                 Tokens are assigned automatically when confirming and follow the appointment time order for that doctor on the selected date.
             </div>
-            {/* Summary Cards — click to filter */}
+
+            {/* Summary Cards Tab Layout */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {['All', 'Pending', 'Confirmed', 'Rejected'].map(status => (
                     <button
@@ -281,10 +353,8 @@ const AppointmentMasterStaff = () => {
                 ))}
             </div>
 
-            {/* Table */}
+            {/* Main Application Queue Render Data Grid View Table */}
             <div className="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden animate-scale-in">
-
-                {/* Toolbar */}
                 <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 justify-between items-center">
                     <div className="relative w-full sm:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -320,8 +390,6 @@ const AppointmentMasterStaff = () => {
                                 {filtered.length > 0 ? (
                                     filtered.map((appt) => (
                                         <tr key={appt.AppointmentID} className="hover:bg-blue-50/20 transition-colors">
-
-                                            {/* Patient */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
@@ -344,7 +412,6 @@ const AppointmentMasterStaff = () => {
                                                 </div>
                                             </td>
 
-                                            {/* Doctor */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Stethoscope className="w-4 h-4 text-slate-400" />
@@ -355,7 +422,6 @@ const AppointmentMasterStaff = () => {
                                                 </div>
                                             </td>
 
-                                            {/* Date */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2 text-slate-600">
                                                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -363,7 +429,6 @@ const AppointmentMasterStaff = () => {
                                                 </div>
                                             </td>
 
-                                            {/* Status */}
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusBadgeClass(appt.Status)}`}>
                                                     {appt.Status === 'Confirmed' && <CheckCircle size={11} />}
@@ -373,7 +438,6 @@ const AppointmentMasterStaff = () => {
                                                 </span>
                                             </td>
 
-                                            {/* Actions */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {appt.Status === 'Pending' ? (
